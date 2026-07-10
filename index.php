@@ -57,6 +57,7 @@ const PRICE_RANGES = [
 ];
 
 const START_PLANET = 'ziemia';
+const EVENT_CHANCE = 30;
 
 function generateMarketPrices(string $planetKey): array
 {
@@ -77,6 +78,37 @@ function cargoCount(array $cargo): int
 function initCargo(): array
 {
     return array_fill_keys(array_keys(GOODS), 0);
+}
+
+function resolveTravelEvent(array &$game): ?string
+{
+    if (rand(1, 100) > EVENT_CHANCE) {
+        return null;
+    }
+
+    $event = rand(1, 3);
+
+    if ($event === 1) {
+        $stolen = rand(100, 300);
+        $actualStolen = min($stolen, $game['credits']);
+        $game['credits'] -= $actualStolen;
+
+        return 'Piraci zaatakowali Twój statek! Skradziono ' . $actualStolen . ' kredytów.';
+    }
+
+    if ($event === 2) {
+        if (cargoCount($game['cargo']) >= $game['cargo_capacity']) {
+            return 'Kosmiczny odpad! Znalazłeś porzucony kontener, ale brak miejsca w ładowni.';
+        }
+
+        $game['cargo']['krysztaly']++;
+
+        return 'Kosmiczny odpad! Znajdujesz porzucony kontener i dostajesz +1 szt. Kryształów Czasu.';
+    }
+
+    $game['fuel'] += 30;
+
+    return 'Anomalia paliwowa! Silnik zassał kosmiczny pył — zyskujesz +30 litrów paliwa.';
 }
 
 $error = null;
@@ -131,9 +163,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['game'], $_POST['ac
                 $_SESSION['flash'] = 'Za mało paliwa!';
             } else {
                 $game['fuel'] -= $fuelCost;
+
+                $messages = [];
+                $eventMessage = resolveTravelEvent($game);
+
+                if ($eventMessage !== null) {
+                    $messages[] = $eventMessage;
+                }
+
                 $game['planet'] = $targetPlanet;
                 $game['prices'] = generateMarketPrices($targetPlanet);
-                $_SESSION['flash'] = 'Dotarłeś na planetę ' . PLANETS[$targetPlanet]['name'] . '.';
+                $messages[] = 'Dotarłeś na planetę ' . PLANETS[$targetPlanet]['name'] . '.';
+
+                $_SESSION['flash'] = implode(' ', $messages);
             }
         }
     }
