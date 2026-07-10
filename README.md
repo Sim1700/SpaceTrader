@@ -29,4 +29,4 @@ Developed as a modern web-app using **PHP Sessions**, **Tailwind CSS**, and **Va
 
 1. Clone the repository to your local server directory (e.g., `XAMPP/htdocs` or `Laragon/www`):
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/space-trader.git](https://github.com/YOUR_USERNAME/space-trader.git)
+   git clone [https://github.com/Sim1700/space-trader.git](https://github.com/Sim1700/space-trader.git)
