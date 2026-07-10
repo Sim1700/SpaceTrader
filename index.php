@@ -367,28 +367,12 @@ if ($hasActiveGame) {
                 <div class="starship-thruster"></div>
             </div>
 
-            <div id="warp-overlay" class="warp-overlay" aria-hidden="true">
+            <div id="warp-overlay" class="warp-overlay warp-overlay-generic" aria-hidden="true">
                 <div class="warp-radial-blur"></div>
                 <div class="warp-flash"></div>
                 <div class="warp-lens-flare"></div>
                 <div class="warp-streaks">
                     <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-            </div>
-
-            <div id="travel-fx" class="travel-fx" aria-hidden="true">
-                <div class="travel-fx-layer travel-fx-ziemia">
-                    <div class="earth-clouds"></div>
-                    <div class="earth-vapor"><span></span><span></span><span></span><span></span><span></span></div>
-                </div>
-                <div class="travel-fx-layer travel-fx-mars">
-                    <div class="mars-dust"></div>
-                    <div class="mars-streaks"><span></span><span></span><span></span><span></span><span></span><span></span></div>
-                </div>
-                <div class="travel-fx-layer travel-fx-cybertron">
-                    <div class="cyber-grid"></div>
-                    <div class="cyber-matrix"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-                    <div class="cyber-glitch-bars"></div>
                 </div>
             </div>
 
@@ -542,6 +526,56 @@ if ($hasActiveGame) {
                 >Resetuj Grę</a>
             </footer>
         </aside>
+
+        <!-- ═══ PEŁNOEKRANOWE EFEKTY LOTU (per planeta) ═══ -->
+        <div id="travel-fx" class="travel-fx" aria-hidden="true">
+            <!-- ZIEMIA: atmosfera, chmury, para -->
+            <div id="fx-ziemia" class="travel-fx-scene fx-ziemia" hidden>
+                <div class="fx-ziemia-sky"></div>
+                <div class="fx-ziemia-clouds">
+                    <div class="fx-cloud fx-cloud-1 animate-pulse"></div>
+                    <div class="fx-cloud fx-cloud-2 animate-pulse"></div>
+                    <div class="fx-cloud fx-cloud-3 animate-pulse"></div>
+                    <div class="fx-cloud fx-cloud-4 animate-pulse"></div>
+                    <div class="fx-cloud fx-cloud-5 animate-pulse"></div>
+                    <div class="fx-cloud fx-cloud-6 animate-pulse"></div>
+                </div>
+                <div class="fx-ziemia-vapor">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="fx-ziemia-glow"></div>
+            </div>
+
+            <!-- MARS: burza piaskowa, smugi, cząsteczki -->
+            <div id="fx-mars" class="travel-fx-scene fx-mars" hidden>
+                <div class="fx-mars-sky"></div>
+                <div class="fx-mars-particles">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="fx-mars-streaks">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="fx-mars-wind"></div>
+            </div>
+
+            <!-- CYBERTRON: glitch CRT, siatka, matrix -->
+            <div id="fx-cybertron" class="travel-fx-scene fx-cybertron" hidden>
+                <div class="fx-cyber-grid"></div>
+                <div class="fx-cyber-matrix">
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="fx-cyber-crt"></div>
+                <div class="fx-cyber-glitch-rgb"></div>
+                <div class="fx-cyber-scanlines"></div>
+                <div class="fx-cyber-barrier"></div>
+            </div>
+        </div>
 
         <!-- ═══ CYBERPUNK MODAL ═══ -->
         <div id="game-modal" class="game-modal hidden" role="dialog" aria-modal="true" aria-hidden="true">

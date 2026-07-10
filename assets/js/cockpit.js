@@ -6,13 +6,19 @@
 
     const TIMING = {
         HUD_SLIDE_OUT: 600,
-        WARP_FLASH: 800,
+        PLANET_FX: 2200,
         PLANET_SWAP: 400,
         PLANET_BRAKE: 1400,
         HUD_SLIDE_IN_DELAY: 300,
         GLITCH_DURATION: 2000,
         ARRIVAL_PAUSE: 500,
         CARGO_FLY: 700,
+    };
+
+    const PLANET_FX_MAP = {
+        ziemia: 'fx-ziemia',
+        mars: 'fx-mars',
+        cybertron: 'fx-cybertron',
     };
 
     const PLANET_META = {
@@ -69,6 +75,7 @@
     const gameModalClose = document.getElementById('game-modal-close');
 
     let isTraveling = false;
+    let aktywnaAnimacjaLotu = null;
 
     function delay(ms) {
         return new Promise(function (resolve) {
@@ -154,44 +161,74 @@
         showModal(type, text);
     }
 
-    function activateTravelFx(planetKey) {
-        if (!travelFx) return;
+    /**
+     * Odpala unikalną, pełnoekranową animację lotu dla planety docelowej.
+     * @param {string} nazwaPlanety - 'ziemia' | 'mars' | 'cybertron'
+     */
+    function odpalAnimacjeLotu(nazwaPlanety) {
+        zatrzymajAnimacjeLotu();
 
-        travelFx.classList.add('travel-fx-active');
-        travelFx.classList.remove('travel-fx-ziemia-on', 'travel-fx-mars-on', 'travel-fx-cybertron-on');
-        travelFx.classList.add('travel-fx-' + planetKey + '-on');
+        const sceneId = PLANET_FX_MAP[nazwaPlanety];
+        if (!travelFx || !sceneId) return;
+
+        const scene = document.getElementById(sceneId);
+        if (!scene) return;
+
+        aktywnaAnimacjaLotu = nazwaPlanety;
+        travelFx.classList.add('travel-fx-active', 'travel-fx-' + nazwaPlanety);
+        scene.hidden = false;
+        scene.classList.add('travel-fx-scene-active');
+
+        /* Per-planeta: dodatkowe klasy na kokpicie dla efektów globalnych */
+        cockpit.classList.add('cockpit-flight', 'cockpit-flight-' + nazwaPlanety);
+        starship.classList.add('starship-warp', 'starship-warp-' + nazwaPlanety);
+        planetDisplay.classList.add('planet-zoom-warp');
     }
 
-    function deactivateTravelFx() {
+    function zatrzymajAnimacjeLotu() {
         if (!travelFx) return;
 
         travelFx.classList.remove(
             'travel-fx-active',
-            'travel-fx-ziemia-on',
-            'travel-fx-mars-on',
-            'travel-fx-cybertron-on'
+            'travel-fx-ziemia',
+            'travel-fx-mars',
+            'travel-fx-cybertron'
         );
+
+        document.querySelectorAll('.travel-fx-scene').forEach(function (scene) {
+            scene.hidden = true;
+            scene.classList.remove('travel-fx-scene-active');
+        });
+
+        cockpit.classList.remove(
+            'cockpit-flight',
+            'cockpit-flight-ziemia',
+            'cockpit-flight-mars',
+            'cockpit-flight-cybertron'
+        );
+
+        starship.classList.remove(
+            'starship-warp',
+            'starship-warp-ziemia',
+            'starship-warp-mars',
+            'starship-warp-cybertron'
+        );
+
+        aktywnaAnimacjaLotu = null;
     }
 
     async function playWarpSequence(targetPlanet) {
         hudPanel.classList.add('hud-panel-slide-out');
         await delay(TIMING.HUD_SLIDE_OUT);
 
-        activateTravelFx(targetPlanet);
-        warpOverlay.classList.add('warp-overlay-active');
-        starship.classList.add('starship-warp');
-        planetDisplay.classList.add('planet-zoom-warp');
-
-        await delay(TIMING.WARP_FLASH);
+        odpalAnimacjeLotu(targetPlanet);
+        await delay(TIMING.PLANET_FX);
 
         setActivePlanet(targetPlanet);
         await delay(TIMING.PLANET_SWAP);
 
-        warpOverlay.classList.remove('warp-overlay-active');
-        deactivateTravelFx();
-        starship.classList.remove('starship-warp');
-        planetDisplay.classList.remove('planet-zoom-warp');
-        planetDisplay.classList.remove('planet-zoom-arrive');
+        zatrzymajAnimacjeLotu();
+        planetDisplay.classList.remove('planet-zoom-warp', 'planet-zoom-arrive');
         void planetDisplay.offsetWidth;
         planetDisplay.classList.add('planet-zoom-arrive');
 
