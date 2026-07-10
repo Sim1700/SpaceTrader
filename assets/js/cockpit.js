@@ -1,5 +1,5 @@
 /**
- * Space Trader — Cockpit controller (travel FX, cargo fly, modals)
+ * Space Trader — Cockpit controller (travel FX, cargo fly, modals, i18n, toasts)
  */
 (function () {
     'use strict';
@@ -22,41 +22,16 @@
     };
 
     const PLANET_META = {
-        ziemia: { name: 'Ziemia', code: 'E-01', halo: 'rgba(34, 211, 238, 0.5)' },
-        mars: { name: 'Mars', code: 'M-07', halo: 'rgba(239, 68, 68, 0.5)' },
-        cybertron: { name: 'Cybertron', code: 'C-13', halo: 'rgba(168, 85, 247, 0.5)' },
-    };
-
-    const MODAL_COPY = {
-        error: {
-            icon: '⚠️',
-            title: 'KRYTYCZNY BŁĄD',
-            prefixes: {
-                fuel: 'BRAK PALIWA!',
-                credits: 'BRAK KREDYTÓW!',
-                cargo: 'ŁADOWNIA PEŁNA!',
-                default: 'OPERACJA NIEMOŻLIWA!',
-            },
-        },
-        success: {
-            icon: '✅',
-            title: 'OPERACJA UDANA',
-            prefixes: { default: 'SUKCES!' },
-        },
-        warning: {
-            icon: '🚨',
-            title: 'OSTRZEŻENIE SYSTEMU',
-            prefixes: { default: 'ZAGROŻENIE WYKRYTE!' },
-        },
-        info: {
-            icon: 'ℹ️',
-            title: 'KOMUNIKAT',
-            prefixes: { default: 'INFORMACJA' },
-        },
+        ziemia: { code: 'E-01', halo: 'rgba(34, 211, 238, 0.5)' },
+        mars: { code: 'M-07', halo: 'rgba(239, 68, 68, 0.5)' },
+        cybertron: { code: 'C-13', halo: 'rgba(168, 85, 247, 0.5)' },
     };
 
     const cockpit = document.getElementById('cockpit');
     if (!cockpit) return;
+
+    const i18n = window.SpaceTraderI18n;
+    const toasts = window.SpaceTraderToasts;
 
     const hudPanel = document.getElementById('hud-panel');
     const warpOverlay = document.getElementById('warp-overlay');
@@ -74,6 +49,13 @@
     const gameModalText = document.getElementById('game-modal-text');
     const gameModalClose = document.getElementById('game-modal-close');
 
+    const MODAL_ICONS = {
+        error: '⚠️',
+        success: '✅',
+        warning: '🚨',
+        info: 'ℹ️',
+    };
+
     let isTraveling = false;
     let aktywnaAnimacjaLotu = null;
 
@@ -81,6 +63,53 @@
         return new Promise(function (resolve) {
             setTimeout(resolve, ms);
         });
+    }
+
+    function parseJsonAttr(value, fallback) {
+        if (!value) return fallback;
+        try {
+            return JSON.parse(value);
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function resolveFlashText() {
+        if (!i18n) return '';
+
+        const messages = parseJsonAttr(cockpit.dataset.flashMessages, []);
+        if (messages.length > 0) {
+            return messages.map(function (msg) {
+                return i18n.translateFlash(msg.key, msg.params || {});
+            }).join(' ');
+        }
+
+        const key = cockpit.dataset.flashKey;
+        if (!key) return '';
+
+        const params = parseJsonAttr(cockpit.dataset.flashParams, {});
+        return i18n.translateFlash(key, params);
+    }
+
+    function getModalPrefix(type, text) {
+        if (!i18n) return '';
+
+        const lower = (text || '').toLowerCase();
+
+        if (type === 'error') {
+            if (lower.includes('paliw') || lower.includes('fuel')) return i18n.t('modal.error_fuel');
+            if (lower.includes('neokredyt') || lower.includes('neocredit')) return i18n.t('modal.error_credits');
+            if (lower.includes('ładown') || lower.includes('cargo')) return i18n.t('modal.error_cargo');
+            return i18n.t('modal.error_default');
+        }
+        if (type === 'success') return i18n.t('modal.success_default');
+        if (type === 'warning') return i18n.t('modal.warning_default');
+        return i18n.t('modal.info_default');
+    }
+
+    function getModalTitle(type) {
+        if (!i18n) return '';
+        return i18n.t('modal.' + type + '_title');
     }
 
     /* ── Video fallback ── */
@@ -104,8 +133,12 @@
         const meta = PLANET_META[planetKey];
         if (!meta) return;
 
-        if (viewportPlanetName) viewportPlanetName.textContent = meta.name;
-        if (viewportPlanetCode) viewportPlanetCode.textContent = 'SECTOR ' + meta.code;
+        if (viewportPlanetName && i18n) {
+            viewportPlanetName.textContent = i18n.planetName(planetKey);
+        }
+        if (viewportPlanetCode && i18n) {
+            viewportPlanetCode.textContent = i18n.t('ui.sector') + ' ' + meta.code;
+        }
 
         const halo = planetDisplay && planetDisplay.querySelector('.planet-halo');
         if (halo) {
@@ -113,25 +146,10 @@
         }
     }
 
-    function getModalPrefix(type, text) {
-        const copy = MODAL_COPY[type] || MODAL_COPY.info;
-        const lower = (text || '').toLowerCase();
-
-        if (type === 'error') {
-            if (lower.includes('paliw')) return copy.prefixes.fuel;
-            if (lower.includes('kredyt')) return copy.prefixes.credits;
-            if (lower.includes('ładown')) return copy.prefixes.cargo;
-        }
-
-        return copy.prefixes.default;
-    }
-
     function showModal(type, text) {
-        const copy = MODAL_COPY[type] || MODAL_COPY.info;
-
         gameModalBox.className = 'game-modal-box game-modal-' + type;
-        gameModalIcon.textContent = copy.icon;
-        gameModalTitle.textContent = copy.title + ': ' + getModalPrefix(type, text);
+        gameModalIcon.textContent = MODAL_ICONS[type] || MODAL_ICONS.info;
+        gameModalTitle.textContent = getModalTitle(type) + ': ' + getModalPrefix(type, text);
         gameModalText.textContent = text;
 
         gameModal.classList.remove('hidden');
@@ -152,13 +170,18 @@
     }
 
     function maybeShowFlashModal() {
-        const text = cockpit.dataset.flash;
+        const text = resolveFlashText();
         const type = cockpit.dataset.flashType || 'info';
         const isArrival = cockpit.dataset.arrival === '1';
 
         if (!text || isArrival) return;
 
         showModal(type, text);
+    }
+
+    function maybeShowTransactionToast() {
+        if (!toasts) return;
+        toasts.showFromDataset(cockpit);
     }
 
     /**
@@ -179,7 +202,6 @@
         scene.hidden = false;
         scene.classList.add('travel-fx-scene-active');
 
-        /* Per-planeta: dodatkowe klasy na kokpicie dla efektów globalnych */
         cockpit.classList.add('cockpit-flight', 'cockpit-flight-' + nazwaPlanety);
         starship.classList.add('starship-warp', 'starship-warp-' + nazwaPlanety);
         planetDisplay.classList.add('planet-zoom-warp');
@@ -282,11 +304,13 @@
     }
 
     async function revealHud() {
-        const flashText = cockpit.dataset.flash;
+        const flashText = resolveFlashText();
         const flashType = cockpit.dataset.flashType || 'info';
 
         hudPanel.classList.remove('hud-panel-hidden', 'hud-panel-slide-out');
         hudPanel.classList.add('hud-panel-slide-in');
+
+        maybeShowTransactionToast();
 
         if (flashText) {
             await delay(400);
@@ -316,6 +340,10 @@
         form.submit();
     }
 
+    function errMsg(key) {
+        return i18n ? i18n.translateFlash(key) : key;
+    }
+
     /* ── Travel ── */
     document.querySelectorAll('[data-travel-form]').forEach(function (form) {
         form.addEventListener('submit', function (event) {
@@ -332,7 +360,7 @@
             if (!targetPlanet || targetPlanet === fromPlanet) return;
 
             if (currentFuel < fuelCost) {
-                showModal('error', 'Za mało paliwa!');
+                showModal('error', errMsg('not_enough_fuel'));
                 return;
             }
 
@@ -358,12 +386,12 @@
             const cargoCapacity = parseInt(cockpit.dataset.cargoCapacity || '0', 10);
 
             if (cargoUsed >= cargoCapacity) {
-                showModal('error', 'Brak miejsca w ładowni!');
+                showModal('error', errMsg('cargo_full'));
                 return;
             }
 
             if (credits < price) {
-                showModal('error', 'Za mało kredytów!');
+                showModal('error', errMsg('not_enough_credits'));
                 return;
             }
 
@@ -373,6 +401,39 @@
         });
     });
 
-    handleArrival();
-    maybeShowFlashModal();
+    /* ── Sell with toast preview ── */
+    document.querySelectorAll('[data-sell-form]').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const goodKey = form.dataset.good;
+            const countEl = document.querySelector('[data-i18n-cargo-count][data-good="' + goodKey + '"]');
+            const hasGood = countEl && parseInt(countEl.dataset.cargoCount || '0', 10) > 0;
+
+            if (!hasGood) {
+                showModal('error', errMsg('no_goods_to_sell'));
+                return;
+            }
+
+            form.submit();
+        });
+    });
+
+    document.addEventListener('st:langchange', function () {
+        setActivePlanet(cockpit.dataset.currentPlanet);
+    });
+
+    function init() {
+        if (cockpit.dataset.arrival !== '1') {
+            maybeShowTransactionToast();
+        }
+        handleArrival();
+        maybeShowFlashModal();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
