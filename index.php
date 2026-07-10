@@ -98,6 +98,12 @@ function initCargo(): array
     return array_fill_keys(array_keys(GOODS), 0);
 }
 
+function setFlash(string $message, string $type): void
+{
+    $_SESSION['flash'] = $message;
+    $_SESSION['flash_type'] = $type;
+}
+
 function resolveTravelEvent(array &$game): ?array
 {
     if (rand(1, 100) > EVENT_CHANCE) {
@@ -143,9 +149,10 @@ function resolveTravelEvent(array &$game): ?array
 
 $error = null;
 $message = $_SESSION['flash'] ?? null;
+$flashType = $_SESSION['flash_type'] ?? 'info';
 $flashEvent = $_SESSION['flash_event'] ?? null;
 $arrivalAnimation = !empty($_SESSION['flash_arrival']);
-unset($_SESSION['flash'], $_SESSION['flash_event'], $_SESSION['flash_arrival']);
+unset($_SESSION['flash'], $_SESSION['flash_type'], $_SESSION['flash_event'], $_SESSION['flash_arrival']);
 
 if (isset($_GET['reset'])) {
     unset($_SESSION['game']);
@@ -185,23 +192,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['game'], $_POST['ac
         $targetPlanet = $_POST['planet'];
 
         if (!isset(PLANETS[$targetPlanet])) {
-            $_SESSION['flash'] = 'Nieznana planeta.';
+            setFlash('Nieznana planeta.', 'error');
         } elseif ($targetPlanet === $game['planet']) {
-            $_SESSION['flash'] = 'Już jesteś na tej planecie.';
+            setFlash('Już jesteś na tej planecie.', 'error');
         } else {
             $fuelCost = PLANETS[$targetPlanet]['fuel_cost'];
 
             if ($game['fuel'] < $fuelCost) {
-                $_SESSION['flash'] = 'Za mało paliwa!';
+                setFlash('Za mało paliwa!', 'error');
             } else {
                 $game['fuel'] -= $fuelCost;
 
                 $messages = [];
                 $eventResult = resolveTravelEvent($game);
+                $flashTypeTravel = 'success';
 
                 if ($eventResult !== null) {
                     $messages[] = $eventResult['message'];
                     $_SESSION['flash_event'] = $eventResult['type'];
+                    if ($eventResult['type'] === 'pirates') {
+                        $flashTypeTravel = 'warning';
+                    }
                 } else {
                     $_SESSION['flash_event'] = 'travel';
                 }
@@ -210,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['game'], $_POST['ac
                 $game['prices'] = generateMarketPrices($targetPlanet);
                 $messages[] = 'Dotarłeś na planetę ' . PLANETS[$targetPlanet]['name'] . '.';
 
-                $_SESSION['flash'] = implode(' ', $messages);
+                setFlash(implode(' ', $messages), $flashTypeTravel);
                 $_SESSION['flash_arrival'] = true;
             }
         }
@@ -220,18 +231,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['game'], $_POST['ac
         $goodKey = $_POST['good'];
 
         if (!isset(GOODS[$goodKey])) {
-            $_SESSION['flash'] = 'Nieznany towar.';
+            setFlash('Nieznany towar.', 'error');
         } elseif (cargoCount($game['cargo']) >= $game['cargo_capacity']) {
-            $_SESSION['flash'] = 'Brak miejsca w ładowni!';
+            setFlash('Brak miejsca w ładowni!', 'error');
         } else {
             $price = $game['prices'][$goodKey];
 
             if ($game['credits'] < $price) {
-                $_SESSION['flash'] = 'Za mało kredytów!';
+                setFlash('Za mało kredytów!', 'error');
             } else {
                 $game['credits'] -= $price;
                 $game['cargo'][$goodKey]++;
-                $_SESSION['flash'] = 'Kupiono 1 szt. towaru: ' . GOODS[$goodKey] . '.';
+                setFlash('Kupiono 1 szt. towaru: ' . GOODS[$goodKey] . '.', 'success');
             }
         }
     }
@@ -240,14 +251,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['game'], $_POST['ac
         $goodKey = $_POST['good'];
 
         if (!isset(GOODS[$goodKey])) {
-            $_SESSION['flash'] = 'Nieznany towar.';
+            setFlash('Nieznany towar.', 'error');
         } elseif (($game['cargo'][$goodKey] ?? 0) < 1) {
-            $_SESSION['flash'] = 'Nie masz tego towaru na sprzedaż!';
+            setFlash('Nie masz tego towaru na sprzedaż!', 'error');
         } else {
             $price = $game['prices'][$goodKey];
             $game['cargo'][$goodKey]--;
             $game['credits'] += $price;
-            $_SESSION['flash'] = 'Sprzedano 1 szt. towaru: ' . GOODS[$goodKey] . ' za ' . $price . ' kr.';
+            setFlash('Sprzedano 1 szt. towaru: ' . GOODS[$goodKey] . ' za ' . $price . ' kr.', 'success');
         }
     }
 
@@ -311,12 +322,16 @@ if ($hasActiveGame) {
         class="cockpit relative flex h-screen w-screen"
         data-current-planet="<?= htmlspecialchars($game['planet']) ?>"
         data-current-fuel="<?= (int) $game['fuel'] ?>"
+        data-credits="<?= (int) $game['credits'] ?>"
+        data-cargo-used="<?= $cargoUsed ?>"
+        data-cargo-capacity="<?= (int) $game['cargo_capacity'] ?>"
         data-arrival="<?= $arrivalAnimation ? '1' : '0' ?>"
         data-event="<?= htmlspecialchars($flashEvent ?? '') ?>"
         data-flash="<?= htmlspecialchars($message ?? '') ?>"
+        data-flash-type="<?= htmlspecialchars($flashType) ?>"
     >
-        <!-- ═══ LEFT: SPACE VIEWPORT (60%) ═══ -->
-        <section id="space-viewport" class="viewport relative w-[60%] overflow-hidden">
+        <!-- ═══ LEFT: SPACE VIEWPORT (55%) ═══ -->
+        <section id="space-viewport" class="viewport relative w-[55%] overflow-hidden">
             <div class="viewport-vignette pointer-events-none absolute inset-0 z-20"></div>
             <div class="viewport-scanlines pointer-events-none absolute inset-0 z-20"></div>
 
@@ -361,6 +376,24 @@ if ($hasActiveGame) {
                 </div>
             </div>
 
+            <div id="travel-fx" class="travel-fx" aria-hidden="true">
+                <div class="travel-fx-layer travel-fx-ziemia">
+                    <div class="earth-clouds"></div>
+                    <div class="earth-vapor"><span></span><span></span><span></span><span></span><span></span></div>
+                </div>
+                <div class="travel-fx-layer travel-fx-mars">
+                    <div class="mars-dust"></div>
+                    <div class="mars-streaks"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                </div>
+                <div class="travel-fx-layer travel-fx-cybertron">
+                    <div class="cyber-grid"></div>
+                    <div class="cyber-matrix"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="cyber-glitch-bars"></div>
+                </div>
+            </div>
+
+            <div id="cargo-fly-layer" class="cargo-fly-layer" aria-hidden="true"></div>
+
             <div id="glitch-overlay" class="glitch-overlay hidden" aria-hidden="true">
                 <div class="glitch-scanlines"></div>
                 <div class="glitch-noise"></div>
@@ -383,87 +416,89 @@ if ($hasActiveGame) {
             </div>
         </section>
 
-        <!-- ═══ RIGHT: GLASS HUD PANEL (40%) ═══ -->
+        <!-- ═══ RIGHT: GLASS HUD PANEL (45%) ═══ -->
         <aside
             id="hud-panel"
-            class="hud-panel flex w-[40%] flex-col border-l border-white/5 bg-slate-950/40 backdrop-blur-2xl<?= $arrivalAnimation ? ' hud-panel-hidden' : '' ?>"
+            class="hud-panel hud-panel-glass flex w-[45%] flex-col<?= $arrivalAnimation ? ' hud-panel-hidden' : '' ?>"
         >
-            <header class="flex items-center justify-between border-b border-white/5 px-8 py-6">
+            <header class="flex items-center justify-between border-b border-cyan-500/20 px-10 py-8">
                 <div>
-                    <p class="text-[10px] uppercase tracking-[0.4em] text-cyan-400/50">Space Trader</p>
-                    <h1 class="mt-1 text-lg font-bold tracking-widest text-white">COMMAND HUD</h1>
+                    <p class="text-sm uppercase tracking-[0.4em] text-cyan-400/60">Space Trader</p>
+                    <h1 class="mt-2 text-2xl font-bold tracking-widest text-white">COMMAND HUD</h1>
                 </div>
                 <div class="hud-status-dot animate-pulse"></div>
             </header>
 
-            <div id="flash-message" class="<?= ($message !== null && !$arrivalAnimation) ? '' : 'hidden' ?> mx-8 mt-6 rounded-lg border border-cyan-500/30 bg-cyan-950/30 px-4 py-3 text-xs leading-relaxed text-cyan-100">
-                <?= $message !== null ? htmlspecialchars($message) : '' ?>
-            </div>
-
-            <div class="flex-1 overflow-y-auto px-8 py-6">
+            <div class="flex-1 overflow-y-auto px-10 py-8">
                 <!-- Stats -->
-                <section class="mb-10">
-                    <h2 class="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-500">// Ship Status</h2>
+                <section class="mb-12">
+                    <h2 class="mb-6 text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">// Ship Status</h2>
 
-                    <div class="mb-6 space-y-1">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-cyan-400/70">FUEL</span>
-                            <span class="text-cyan-200"><?= (int) $game['fuel'] ?> / <?= $fuelMax ?> L</span>
+                    <div class="mb-8 space-y-2">
+                        <div class="flex justify-between text-base">
+                            <span class="text-cyan-400/80">FUEL</span>
+                            <span class="text-lg font-semibold text-cyan-200"><?= (int) $game['fuel'] ?> / <?= $fuelMax ?> L</span>
                         </div>
-                        <div class="hud-bar-track">
+                        <div class="hud-bar-track hud-bar-track-lg">
                             <div class="hud-bar-fill hud-bar-cyan" style="width:<?= $fuelPercent ?>%"></div>
                         </div>
                     </div>
 
-                    <div class="mb-6 space-y-1">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-emerald-400/70">CARGO</span>
-                            <span class="text-emerald-200"><?= $cargoUsed ?> / <?= (int) $game['cargo_capacity'] ?></span>
+                    <div class="mb-8 space-y-2">
+                        <div class="flex justify-between text-base">
+                            <span class="text-emerald-400/80">CARGO</span>
+                            <span class="text-lg font-semibold text-emerald-200"><?= $cargoUsed ?> / <?= (int) $game['cargo_capacity'] ?></span>
                         </div>
-                        <div class="hud-bar-track">
+                        <div class="hud-bar-track hud-bar-track-lg">
                             <div class="hud-bar-fill hud-bar-green" style="width:<?= $cargoPercent ?>%"></div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-fuchsia-500/20 bg-fuchsia-950/10 px-4 py-4">
+                    <div class="rounded-xl border-2 border-fuchsia-500/30 bg-fuchsia-950/15 px-6 py-5">
                         <div class="flex items-end justify-between">
-                            <span class="text-[10px] uppercase tracking-widest text-fuchsia-400/60">Credits</span>
-                            <span class="text-2xl font-bold text-fuchsia-200 hud-glow-pink"><?= (int) $game['credits'] ?></span>
+                            <span class="text-sm uppercase tracking-widest text-fuchsia-400/70">Credits</span>
+                            <span class="text-4xl font-bold text-fuchsia-200 hud-glow-pink"><?= (int) $game['credits'] ?></span>
                         </div>
                     </div>
 
-                    <ul class="mt-5 space-y-2">
+                    <ul class="mt-6 space-y-3">
                         <?php foreach (GOODS as $goodKey => $goodName): ?>
-                            <li class="flex justify-between border-b border-white/5 py-2 text-xs">
-                                <span class="text-slate-500"><?= htmlspecialchars($goodName) ?></span>
-                                <span class="text-emerald-300"><?= (int) $game['cargo'][$goodKey] ?> szt.</span>
+                            <li class="flex justify-between border-b border-white/10 py-3 text-base">
+                                <span class="text-slate-400"><?= htmlspecialchars($goodName) ?></span>
+                                <span class="text-lg font-semibold text-emerald-300"><?= (int) $game['cargo'][$goodKey] ?> szt.</span>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 </section>
 
                 <!-- Market -->
-                <section class="mb-10">
-                    <h2 class="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-500">// Market — <?= htmlspecialchars($currentPlanet['name']) ?></h2>
+                <section class="mb-12">
+                    <h2 class="mb-6 text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">// Market — <?= htmlspecialchars($currentPlanet['name']) ?></h2>
 
-                    <?php foreach (GOODS as $goodKey => $goodName): ?>
-                        <div class="mb-4 rounded-lg border border-white/5 bg-black/30 p-4">
-                            <div class="mb-3 flex items-center justify-between">
-                                <span class="text-sm text-white"><?= htmlspecialchars($goodName) ?></span>
-                                <span class="rounded border border-fuchsia-500/30 px-2 py-0.5 text-xs font-bold text-fuchsia-300">
+                    <?php
+                    $goodIcons = ['woda' => '💧', 'krysztaly' => '💎'];
+                    foreach (GOODS as $goodKey => $goodName):
+                    ?>
+                        <div class="mb-6 rounded-xl border border-white/10 bg-black/40 p-6" data-market-item="<?= htmlspecialchars($goodKey) ?>">
+                            <div class="mb-4 flex items-center justify-between">
+                                <span class="flex items-center gap-3 text-xl font-semibold text-white">
+                                    <span class="text-3xl"><?= $goodIcons[$goodKey] ?></span>
+                                    <?= htmlspecialchars($goodName) ?>
+                                </span>
+                                <span class="rounded-lg border-2 border-fuchsia-500/40 px-4 py-1 text-lg font-bold text-fuchsia-300">
                                     <?= (int) $game['prices'][$goodKey] ?> kr
                                 </span>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <form method="post">
+                            <div class="grid grid-cols-2 gap-4">
+                                <form method="post" class="buy-form" data-buy-form data-good="<?= htmlspecialchars($goodKey) ?>" data-icon="<?= $goodIcons[$goodKey] ?>" data-price="<?= (int) $game['prices'][$goodKey] ?>">
                                     <input type="hidden" name="action" value="buy">
                                     <input type="hidden" name="good" value="<?= htmlspecialchars($goodKey) ?>">
-                                    <button type="submit" class="hud-btn hud-btn-cyan w-full">KUP</button>
+                                    <button type="submit" class="hud-btn hud-btn-cyan hud-btn-lg w-full">KUP 1 SZT.</button>
                                 </form>
                                 <form method="post">
                                     <input type="hidden" name="action" value="sell">
                                     <input type="hidden" name="good" value="<?= htmlspecialchars($goodKey) ?>">
-                                    <button type="submit" class="hud-btn hud-btn-pink w-full">SPRZEDAJ</button>
+                                    <button type="submit" class="hud-btn hud-btn-pink hud-btn-lg w-full">SPRZEDAJ 1 SZT.</button>
                                 </form>
                             </div>
                         </div>
@@ -472,23 +507,23 @@ if ($hasActiveGame) {
 
                 <!-- Navigation -->
                 <section>
-                    <h2 class="mb-5 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-500">// Navigation</h2>
-                    <div class="space-y-2">
+                    <h2 class="mb-6 text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">// Navigation</h2>
+                    <div class="space-y-3">
                         <?php foreach (PLANETS as $planetKey => $planet): ?>
                             <form method="post" class="travel-form" data-travel-form>
                                 <input type="hidden" name="action" value="travel">
                                 <input type="hidden" name="planet" value="<?= htmlspecialchars($planetKey) ?>">
                                 <button
                                     type="submit"
-                                    class="travel-btn hud-nav-btn w-full<?= $planetKey === $game['planet'] ? ' hud-nav-active' : '' ?>"
+                                    class="travel-btn hud-nav-btn hud-nav-btn-lg w-full<?= $planetKey === $game['planet'] ? ' hud-nav-active' : '' ?>"
                                     data-target-planet="<?= htmlspecialchars($planetKey) ?>"
                                     data-fuel-cost="<?= (int) $planet['fuel_cost'] ?>"
                                     data-planet-name="<?= htmlspecialchars($planet['name']) ?>"
                                     <?= $planetKey === $game['planet'] ? 'disabled' : '' ?>
                                 >
                                     <span class="flex items-center justify-between">
-                                        <span><?= htmlspecialchars($planet['name']) ?></span>
-                                        <span class="text-[10px] opacity-50">
+                                        <span class="text-lg"><?= htmlspecialchars($planet['name']) ?></span>
+                                        <span class="text-sm opacity-60">
                                             <?= $planetKey === $game['planet'] ? 'LOCKED' : $planet['fuel_cost'] . ' FUEL' ?>
                                         </span>
                                     </span>
@@ -499,14 +534,25 @@ if ($hasActiveGame) {
                 </section>
             </div>
 
-            <footer class="border-t border-white/5 px-8 py-5">
+            <footer class="border-t border-cyan-500/20 px-10 py-6">
                 <a
                     href="?reset=1"
-                    class="block w-full rounded border border-red-500/30 py-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-red-400/80 transition hover:border-red-400/60 hover:bg-red-950/30 hover:text-red-300"
+                    class="block w-full rounded-lg border-2 border-red-500/40 py-3 text-center text-sm font-semibold uppercase tracking-[0.3em] text-red-400 transition hover:border-red-400 hover:bg-red-950/30 hover:text-red-300"
                     onclick="return confirm('Na pewno chcesz zresetować grę?');"
                 >Resetuj Grę</a>
             </footer>
         </aside>
+
+        <!-- ═══ CYBERPUNK MODAL ═══ -->
+        <div id="game-modal" class="game-modal hidden" role="dialog" aria-modal="true" aria-hidden="true">
+            <div class="game-modal-backdrop"></div>
+            <div id="game-modal-box" class="game-modal-box">
+                <p id="game-modal-icon" class="game-modal-icon"></p>
+                <h2 id="game-modal-title" class="game-modal-title"></h2>
+                <p id="game-modal-text" class="game-modal-text"></p>
+                <button id="game-modal-close" type="button" class="game-modal-btn">OK [X]</button>
+            </div>
+        </div>
     </div>
     <script src="assets/js/cockpit.js"></script>
 
