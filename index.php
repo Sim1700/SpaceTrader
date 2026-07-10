@@ -344,8 +344,6 @@ if ($hasActiveGame) {
         };
     </script>
     <link rel="stylesheet" href="style.css">
-    <script src="assets/js/i18n.js" defer></script>
-    <script src="assets/js/toasts.js" defer></script>
 </head>
 <body class="h-screen overflow-hidden bg-black font-mono text-slate-100 antialiased">
 
@@ -648,6 +646,8 @@ if ($hasActiveGame) {
             </div>
         </div>
     </div>
+    <script src="assets/js/i18n.js"></script>
+    <script src="assets/js/toasts.js"></script>
     <script src="assets/js/cockpit.js"></script>
 
 <?php else: ?>
@@ -715,6 +715,7 @@ if ($hasActiveGame) {
             </footer>
         </div>
     </div>
+    <script src="assets/js/i18n.js"></script>
 <?php endif; ?>
 
 </body>
