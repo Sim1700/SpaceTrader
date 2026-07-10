@@ -326,7 +326,7 @@ if ($hasActiveGame) {
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Space Trader<?= $hasActiveGame ? ' — ' . htmlspecialchars($currentPlanet['name']) : '' ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -345,12 +345,12 @@ if ($hasActiveGame) {
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="h-screen overflow-hidden bg-black font-mono text-slate-100 antialiased">
+<body class="<?= $hasActiveGame ? 'cockpit-body h-[100dvh] overflow-hidden' : 'start-body min-h-[100dvh] overflow-x-hidden' ?> bg-black font-mono text-slate-100 antialiased">
 
 <?php if ($hasActiveGame): ?>
     <div
         id="cockpit"
-        class="cockpit relative flex h-screen w-screen"
+        class="cockpit relative flex h-full min-h-0 w-full max-w-[100vw]"
         data-current-planet="<?= htmlspecialchars($game['planet']) ?>"
         data-current-fuel="<?= (int) $game['fuel'] ?>"
         data-credits="<?= (int) $game['credits'] ?>"
@@ -372,7 +372,7 @@ if ($hasActiveGame) {
             <button type="button" class="lang-switch-btn" data-lang="en" data-i18n="ui.lang_en">EN</button>
         </div>
         <!-- ═══ LEFT: SPACE VIEWPORT (55%) ═══ -->
-        <section id="space-viewport" class="viewport relative w-[55%] overflow-hidden">
+        <section id="space-viewport" class="viewport relative w-[55%] shrink-0 overflow-hidden">
             <div class="viewport-vignette pointer-events-none absolute inset-0 z-20"></div>
             <div class="viewport-scanlines pointer-events-none absolute inset-0 z-20"></div>
 
@@ -444,9 +444,9 @@ if ($hasActiveGame) {
         <!-- ═══ RIGHT: GLASS HUD PANEL (45%) ═══ -->
         <aside
             id="hud-panel"
-            class="hud-panel hud-panel-glass flex w-[45%] flex-col<?= $arrivalAnimation ? ' hud-panel-hidden' : '' ?>"
+            class="hud-panel hud-panel-glass flex w-[45%] min-h-0 flex-col<?= $arrivalAnimation ? ' hud-panel-hidden' : '' ?>"
         >
-            <header class="flex items-center justify-between border-b border-cyan-500/20 px-10 py-8">
+            <header class="hud-panel-header flex shrink-0 items-center justify-between border-b border-cyan-500/20 px-4 py-5 sm:px-10 sm:py-8">
                 <div>
                     <p class="text-sm uppercase tracking-[0.4em] text-cyan-400/60" data-i18n="ui.space_trader">Space Trader</p>
                     <h1 class="mt-2 text-2xl font-bold tracking-widest text-white" data-i18n="ui.command_hud">COMMAND HUD</h1>
@@ -456,7 +456,7 @@ if ($hasActiveGame) {
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto px-10 py-8">
+            <div class="hud-panel-body flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-10 sm:py-8">
                 <!-- Stats -->
                 <section class="mb-12">
                     <h2 class="mb-6 text-sm font-semibold uppercase tracking-[0.35em] text-slate-400" data-i18n="ui.ship_status">// Ship Status</h2>
@@ -494,7 +494,7 @@ if ($hasActiveGame) {
                     <div class="rounded-xl border-2 border-fuchsia-500/30 bg-fuchsia-950/15 px-6 py-5" id="credits-panel">
                         <div class="flex items-end justify-between">
                             <span class="text-sm uppercase tracking-widest text-fuchsia-400/70" data-i18n-credits-label>NEOKREDYTY</span>
-                            <span class="text-4xl font-bold text-fuchsia-200 hud-glow-pink" data-i18n-credits-value data-credits-value="<?= (int) $game['credits'] ?>"><?= (int) $game['credits'] ?> ₵</span>
+                            <span class="text-2xl font-bold text-fuchsia-200 hud-glow-pink sm:text-4xl" data-i18n-credits-value data-credits-value="<?= (int) $game['credits'] ?>"><?= (int) $game['credits'] ?> ₵</span>
                         </div>
                     </div>
 
@@ -526,7 +526,7 @@ if ($hasActiveGame) {
                                     <?= (int) $game['prices'][$goodKey] ?> ₵
                                 </span>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="market-actions grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                                 <form method="post" class="buy-form" data-buy-form data-good="<?= htmlspecialchars($goodKey) ?>" data-icon="<?= $goodIcons[$goodKey] ?>" data-price="<?= (int) $game['prices'][$goodKey] ?>">
                                     <input type="hidden" name="action" value="buy">
                                     <input type="hidden" name="good" value="<?= htmlspecialchars($goodKey) ?>">
@@ -574,7 +574,7 @@ if ($hasActiveGame) {
                 </section>
             </div>
 
-            <footer class="border-t border-cyan-500/20 px-10 py-6">
+            <footer class="hud-panel-footer shrink-0 border-t border-cyan-500/20 px-4 py-4 sm:px-10 sm:py-6">
                 <a
                     href="?reset=1"
                     class="block w-full rounded-lg border-2 border-red-500/40 py-3 text-center text-sm font-semibold uppercase tracking-[0.3em] text-red-400 transition hover:border-red-400 hover:bg-red-950/30 hover:text-red-300"
@@ -651,7 +651,7 @@ if ($hasActiveGame) {
     <script src="assets/js/cockpit.js"></script>
 
 <?php else: ?>
-    <div class="start-screen relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto py-12">
+    <div class="start-screen relative flex min-h-[100dvh] items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-8 sm:px-6 sm:py-12">
         <div class="lang-switcher lang-switcher-start" role="group" aria-label="Language">
             <button type="button" class="lang-switch-btn" data-lang="pl" data-i18n="ui.lang_pl">PL</button>
             <span class="lang-switch-divider">/</span>
@@ -660,11 +660,11 @@ if ($hasActiveGame) {
 
         <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(34,211,238,0.06)_0%,_transparent_70%)]"></div>
 
-        <div class="relative z-10 w-full max-w-6xl px-10">
-            <header class="mb-16 text-center">
-                <p class="text-sm uppercase tracking-[0.5em] text-cyan-500/60" data-i18n="ui.stardate">Stardate 2026</p>
-                <h1 class="mt-6 text-7xl font-bold tracking-[0.25em] text-white sm:text-8xl">SPACE TRADER</h1>
-                <p class="mt-6 text-xl text-slate-500" data-i18n="ui.start_subtitle">Wybierz statek i rozpocznij misję handlową</p>
+        <div class="relative z-10 w-full max-w-6xl">
+            <header class="mb-10 text-center sm:mb-16">
+                <p class="text-xs uppercase tracking-[0.35em] text-cyan-500/60 sm:text-sm sm:tracking-[0.5em]" data-i18n="ui.stardate">Stardate 2026</p>
+                <h1 class="mt-4 text-4xl font-bold tracking-[0.12em] text-white sm:mt-6 sm:text-7xl sm:tracking-[0.25em] lg:text-8xl">SPACE TRADER</h1>
+                <p class="mt-4 text-base text-slate-500 sm:mt-6 sm:text-xl" data-i18n="ui.start_subtitle">Wybierz statek i rozpocznij misję handlową</p>
             </header>
 
             <?php if ($error !== null): ?>
@@ -678,10 +678,10 @@ if ($hasActiveGame) {
                     <?php foreach (SHIPS as $key => $ship): ?>
                         <label class="cursor-pointer">
                             <input type="radio" name="ship" value="<?= htmlspecialchars($key) ?>" class="peer sr-only" required>
-                            <div class="start-ship-card rounded-2xl border border-white/10 bg-slate-950/60 p-10 transition peer-checked:border-cyan-400/60 peer-checked:shadow-[0_0_50px_rgba(34,211,238,0.2)] hover:border-white/20">
-                                <h2 class="text-3xl font-bold tracking-widest text-cyan-200" data-i18n-ship-name="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ship['name']) ?></h2>
-                                <p class="mt-3 text-lg text-slate-500" data-i18n-ship-desc="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ship['description']) ?></p>
-                                <ul class="mt-8 space-y-4 text-lg">
+                            <div class="start-ship-card rounded-2xl border border-white/10 bg-slate-950/60 p-6 transition peer-checked:border-cyan-400/60 peer-checked:shadow-[0_0_50px_rgba(34,211,238,0.2)] hover:border-white/20 sm:p-10">
+                                <h2 class="text-2xl font-bold tracking-widest text-cyan-200 sm:text-3xl" data-i18n-ship-name="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ship['name']) ?></h2>
+                                <p class="mt-3 text-base text-slate-500 sm:text-lg" data-i18n-ship-desc="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ship['description']) ?></p>
+                                <ul class="mt-6 space-y-3 text-base sm:mt-8 sm:space-y-4 sm:text-lg">
                                     <li class="flex justify-between rounded-lg bg-black/30 px-5 py-3 text-cyan-400/70">
                                         <span data-i18n="ui.fuel">FUEL</span>
                                         <span class="font-bold text-cyan-200"><?= $ship['fuel'] ?> l</span>
@@ -699,7 +699,7 @@ if ($hasActiveGame) {
                         </label>
                     <?php endforeach; ?>
                 </div>
-                <button type="submit" class="start-btn hud-btn hud-btn-cyan w-full py-8 text-xl tracking-[0.3em]" data-i18n="ui.start_mission">
+                <button type="submit" class="start-btn hud-btn hud-btn-cyan w-full py-5 text-base tracking-[0.2em] sm:py-8 sm:text-xl sm:tracking-[0.3em]" data-i18n="ui.start_mission">
                     ROZPOCZNIJ MISJĘ
                 </button>
             </form>
