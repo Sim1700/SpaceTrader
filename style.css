@@ -1,321 +1,618 @@
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
+/* ═══════════════════════════════════════════
+   SPACE TRADER — Cyberpunk Starship HUD
+   ═══════════════════════════════════════════ */
+
+/* ── Viewport ── */
+
+.viewport {
+    background: #000;
 }
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background:
-        radial-gradient(circle at top, #1a2a4a 0%, #0a0f1e 55%, #050810 100%);
-    color: #e8f0ff;
+.viewport-vignette {
+    background: radial-gradient(ellipse at 60% 50%, transparent 30%, rgba(0, 0, 0, 0.75) 100%);
 }
 
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 3rem;
+.viewport-scanlines {
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
 }
 
-.container-wide {
-    max-width: 1200px;
-}
+/* ── Planet layers (video + CSS fallback) ── */
 
-.header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.header h1 {
-    margin: 0;
-    font-size: 2.5rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #7ec8ff;
-    text-shadow: 0 0 20px rgba(126, 200, 255, 0.35);
-}
-
-.subtitle {
-    margin: 0.75rem 0 0;
-    color: #9db4d8;
-}
-
-.ship-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.ship-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1.25rem;
-}
-
-.ship-card {
-    cursor: pointer;
-}
-
-.ship-card input {
+.planet-layer {
     position: absolute;
+    inset: 0;
     opacity: 0;
+    transition: opacity 0.6s ease;
     pointer-events: none;
 }
 
-.ship-card-content {
+.planet-layer-active {
+    opacity: 1;
+}
+
+.planet-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
     height: 100%;
-    padding: 1.5rem;
-    border: 2px solid #2a3f66;
-    border-radius: 14px;
-    background: rgba(18, 30, 54, 0.85);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
-.ship-card:hover .ship-card-content {
-    border-color: #4f7ec4;
-    transform: translateY(-2px);
+.planet-video.is-playing {
+    opacity: 1;
 }
 
-.ship-card input:checked + .ship-card-content {
-    border-color: #7ec8ff;
-    box-shadow: 0 0 0 1px #7ec8ff, 0 0 24px rgba(126, 200, 255, 0.25);
+.planet-fallback {
+    position: absolute;
+    inset: -10%;
+    animation: planet-drift 30s ease-in-out infinite;
 }
 
-.ship-card h2 {
-    margin: 0 0 0.35rem;
-    font-size: 1.5rem;
+.planet-fallback-ziemia {
+    background:
+        radial-gradient(circle at 35% 35%, #67e8f9 0%, #0891b2 30%, #0c4a6e 55%, transparent 70%),
+        radial-gradient(ellipse at 70% 80%, rgba(34, 211, 238, 0.15), transparent 50%),
+        #020617;
 }
 
-.ship-desc {
-    margin: 0 0 1rem;
-    color: #9db4d8;
+.planet-fallback-mars {
+    background:
+        radial-gradient(circle at 40% 38%, #fca5a5 0%, #dc2626 28%, #7f1d1d 55%, transparent 72%),
+        radial-gradient(ellipse at 60% 70%, rgba(239, 68, 68, 0.12), transparent 50%),
+        #0a0000;
 }
 
-.ship-stats {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.6rem;
+.planet-fallback-cybertron {
+    background:
+        radial-gradient(circle at 38% 36%, #e9d5ff 0%, #a855f7 25%, #581c87 52%, transparent 70%),
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 20px,
+            rgba(148, 163, 184, 0.03) 20px,
+            rgba(148, 163, 184, 0.03) 21px
+        ),
+        #050010;
 }
 
-.ship-stats li {
+.planet-atmosphere {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.planet-atmosphere-cyan {
+    background: radial-gradient(ellipse at 55% 45%, rgba(34, 211, 238, 0.12), transparent 60%);
+}
+
+.planet-atmosphere-red {
+    background: radial-gradient(ellipse at 55% 45%, rgba(239, 68, 68, 0.1), transparent 60%);
+}
+
+.planet-atmosphere-purple {
+    background: radial-gradient(ellipse at 55% 45%, rgba(168, 85, 247, 0.12), transparent 60%);
+}
+
+/* ── Planet display (zoom target) ── */
+
+.planet-display {
+    position: absolute;
+    right: -15%;
+    top: 50%;
+    z-index: 10;
+    width: 85%;
+    height: 85%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+}
+
+.planet-halo {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    opacity: 0.4;
+    filter: blur(60px);
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.5), transparent 70%);
+}
+
+.planet-zoom-idle {
+    transform: translateY(-50%) scale(1);
+}
+
+.planet-zoom-arrive {
+    animation: planet-brake 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.planet-zoom-warp {
+    transform: translateY(-50%) scale(1.6);
+    opacity: 0.3;
+}
+
+/* ── Starship ── */
+
+.starship {
+    position: absolute;
+    left: 28%;
+    top: 48%;
+    z-index: 15;
+    width: 5rem;
+    height: 6rem;
+    animation: starship-float 5s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.5));
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.starship-hull {
+    position: absolute;
+    left: 50%;
+    top: 1rem;
+    width: 1.5rem;
+    height: 3rem;
+    transform: translateX(-50%);
+    border-radius: 50% 50% 15% 15%;
+    background: linear-gradient(180deg, #f1f5f9, #64748b);
+    box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.starship-cockpit {
+    position: absolute;
+    left: 50%;
+    top: 1.4rem;
+    width: 0.7rem;
+    height: 1.2rem;
+    transform: translateX(-50%);
+    border-radius: 40%;
+    background: linear-gradient(180deg, #22d3ee, #0891b2);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+}
+
+.starship-wing {
+    position: absolute;
+    top: 2.5rem;
+    width: 2.2rem;
+    height: 0.55rem;
+    background: linear-gradient(90deg, #475569, #94a3b8);
+}
+
+.starship-wing-l {
+    left: 0;
+    transform: skewY(-10deg);
+    border-radius: 3px 0 0 3px;
+}
+
+.starship-wing-r {
+    right: 0;
+    transform: skewY(10deg);
+    border-radius: 0 3px 3px 0;
+}
+
+.starship-thruster {
+    position: absolute;
+    left: 50%;
+    bottom: 0.5rem;
+    width: 0.8rem;
+    height: 1.4rem;
+    transform: translateX(-50%);
+    border-radius: 0 0 50% 50%;
+    background: linear-gradient(180deg, #22d3ee, transparent);
+    animation: thruster-pulse 0.8s ease-in-out infinite;
+}
+
+.starship-warp {
+    animation: starship-warp 0.1s linear infinite, starship-float 5s ease-in-out infinite;
+    filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 80px rgba(34, 211, 238, 0.6));
+}
+
+/* ── Warp overlay ── */
+
+.warp-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.warp-overlay-active {
+    opacity: 1;
+}
+
+.warp-radial-blur {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 0.85) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.warp-overlay-active .warp-radial-blur {
+    opacity: 1;
+    animation: radial-blur-in 0.8s ease forwards;
+}
+
+.warp-flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+}
+
+.warp-overlay-active .warp-flash {
+    animation: white-flash 0.8s ease forwards;
+}
+
+.warp-lens-flare {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 200%;
+    height: 4px;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    opacity: 0;
+}
+
+.warp-overlay-active .warp-lens-flare {
+    animation: lens-flare 0.8s ease forwards;
+}
+
+.warp-streaks {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.warp-streaks span {
+    position: absolute;
+    top: 50%;
+    width: 3px;
+    height: 200%;
+    transform: translateY(-50%);
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: warp-streak-move 0.3s linear infinite;
+}
+
+.warp-streaks span:nth-child(1) { left: 8%; animation-delay: 0s; }
+.warp-streaks span:nth-child(2) { left: 22%; animation-delay: 0.05s; }
+.warp-streaks span:nth-child(3) { left: 38%; animation-delay: 0.02s; }
+.warp-streaks span:nth-child(4) { left: 55%; animation-delay: 0.08s; }
+.warp-streaks span:nth-child(5) { left: 72%; animation-delay: 0.03s; }
+.warp-streaks span:nth-child(6) { left: 88%; animation-delay: 0.06s; }
+
+/* ── Glitch / Pirate attack ── */
+
+.glitch-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
     display: flex;
-    justify-content: space-between;
-    padding: 0.55rem 0.75rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.ship-stats span {
-    color: #9db4d8;
-}
-
-.btn {
-    display: inline-block;
-    padding: 0.75rem 1.25rem;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #3d8bfd, #1f5fbf);
-    color: #fff;
-}
-
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.08);
-    color: #d8e6ff;
-    border: 1px solid #3a5078;
-}
-
-.btn-large {
-    width: 100%;
-    font-size: 1.05rem;
-    padding: 1rem;
-}
-
-.notice,
-.error,
-.flash {
-    padding: 1.25rem;
-    border-radius: 12px;
-    text-align: center;
-}
-
-.notice {
-    background: rgba(126, 200, 255, 0.08);
-    border: 1px solid #2f5f95;
-}
-
-.flash {
-    margin-bottom: 1.25rem;
-    background: rgba(126, 200, 255, 0.1);
-    border: 1px solid #3d7ec4;
-    color: #d8ecff;
-}
-
-.error {
-    margin-bottom: 1rem;
-    background: rgba(255, 96, 96, 0.12);
-    border: 1px solid #a33;
-    color: #ffb3b3;
-}
-
-.game-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
-    align-items: start;
-}
-
-.panel {
-    padding: 1.25rem;
-    border-radius: 14px;
-    background: rgba(18, 30, 54, 0.85);
-    border: 1px solid #2a3f66;
-}
-
-.panel h2 {
-    margin: 0 0 0.75rem;
-    font-size: 1.25rem;
-    color: #7ec8ff;
-}
-
-.panel h3 {
-    margin: 1.25rem 0 0.75rem;
-    font-size: 1rem;
-    color: #9db4d8;
-}
-
-.panel-desc {
-    margin: 0 0 1rem;
-    color: #9db4d8;
-    font-size: 0.9rem;
-}
-
-.info-list,
-.cargo-list,
-.planet-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.6rem;
-}
-
-.info-list li,
-.cargo-list li {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.55rem 0.75rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.info-list span,
-.cargo-list span {
-    color: #9db4d8;
-}
-
-.market-item {
-    padding: 1rem;
-    margin-bottom: 0.85rem;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid #2f4568;
-}
-
-.market-item:last-child {
-    margin-bottom: 0;
-}
-
-.market-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.85rem;
+    justify-content: center;
+    background: rgba(127, 0, 0, 0.25);
+    animation: glitch-bg 0.15s steps(2) infinite;
 }
 
-.market-header h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: #e8f0ff;
+.glitch-overlay.active {
+    display: flex;
 }
 
-.price {
+.glitch-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 0, 0, 0.08),
+        rgba(255, 0, 0, 0.08) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    animation: crt-flicker 0.1s steps(2) infinite;
+}
+
+.glitch-noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: noise-shift 0.2s steps(4) infinite;
+}
+
+.glitch-alert {
+    position: relative;
+    z-index: 1;
+    font-size: 0.7rem;
     font-weight: 700;
-    color: #7ec8ff;
+    letter-spacing: 0.3em;
+    color: #fca5a5;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+    animation: glitch-text 0.3s steps(3) infinite;
 }
 
-.market-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+.cockpit-glitch {
+    animation: cockpit-shake 0.12s linear infinite;
 }
 
-.market-actions form {
-    margin: 0;
+.cockpit-glitch .hud-panel {
+    animation: hud-glitch 0.15s steps(2) infinite;
 }
 
-.market-actions .btn {
-    width: 100%;
-    font-size: 0.85rem;
-    padding: 0.6rem 0.5rem;
+/* ── HUD Panel ── */
+
+.hud-panel {
+    transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease, filter 0.7s ease;
 }
 
-.planet-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 1rem;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid #2f4568;
+.hud-panel-hidden {
+    transform: translateX(105%);
+    opacity: 0;
+    filter: blur(8px);
 }
 
-.planet-item.planet-current {
-    border-color: #7ec8ff;
-    background: rgba(126, 200, 255, 0.06);
+.hud-panel-slide-out {
+    transform: translateX(110%);
+    opacity: 0;
+    filter: blur(12px);
 }
 
-.planet-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+.hud-panel-slide-in {
+    animation: hud-slide-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.planet-info span {
-    font-size: 0.85rem;
-    color: #9db4d8;
+.hud-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22d3ee;
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
 }
 
-.planet-item .btn {
-    width: 100%;
+/* ── HUD bars ── */
+
+.hud-bar-track {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
 }
 
-.planet-item .btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.08);
-    color: #9db4d8;
+.hud-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: bar-glow 2.5s ease-in-out infinite;
 }
 
-.btn-block {
-    display: block;
-    width: 100%;
-    margin-top: 1.25rem;
-    text-align: center;
+.hud-bar-cyan {
+    background: linear-gradient(90deg, #0891b2, #22d3ee);
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
 }
 
-@media (max-width: 960px) {
-    .game-grid {
-        grid-template-columns: 1fr;
+.hud-bar-green {
+    background: linear-gradient(90deg, #15803d, #4ade80);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.hud-glow-pink {
+    text-shadow: 0 0 20px rgba(244, 114, 182, 0.5);
+}
+
+/* ── HUD buttons ── */
+
+.hud-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    border: 1px solid;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hud-btn-cyan {
+    border-color: rgba(34, 211, 238, 0.4);
+    background: rgba(8, 145, 178, 0.15);
+    color: #67e8f9;
+}
+
+.hud-btn-cyan:hover {
+    background: rgba(8, 145, 178, 0.3);
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+}
+
+.hud-btn-pink {
+    border-color: rgba(244, 114, 182, 0.4);
+    background: rgba(157, 23, 77, 0.15);
+    color: #f9a8d4;
+}
+
+.hud-btn-pink:hover {
+    background: rgba(157, 23, 77, 0.3);
+    box-shadow: 0 0 20px rgba(244, 114, 182, 0.2);
+}
+
+.hud-nav-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-align: left;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.3);
+    color: #cbd5e1;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.hud-nav-btn:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.4);
+    background: rgba(88, 28, 135, 0.15);
+    color: #e9d5ff;
+}
+
+.hud-nav-btn:disabled,
+.hud-nav-active {
+    border-color: rgba(34, 211, 238, 0.3);
+    background: rgba(8, 145, 178, 0.1);
+    color: #67e8f9;
+    cursor: default;
+    opacity: 0.7;
+}
+
+/* ── Keyframes ── */
+
+@keyframes planet-drift {
+    0%, 100% { transform: scale(1) translate(0, 0); }
+    50% { transform: scale(1.03) translate(-1%, 0.5%); }
+}
+
+@keyframes planet-brake {
+    0% { transform: translateY(-50%) scale(1.5); opacity: 0.6; }
+    100% { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+@keyframes starship-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-14px) rotate(-0.5deg); }
+    66% { transform: translateY(-6px) rotate(0.5deg); }
+}
+
+@keyframes starship-warp {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px) rotate(-1deg); }
+    75% { transform: translateX(4px) rotate(1deg); }
+    100% { transform: translateX(0); }
+}
+
+@keyframes thruster-pulse {
+    0%, 100% { opacity: 0.7; height: 1.4rem; }
+    50% { opacity: 1; height: 1.8rem; }
+}
+
+@keyframes radial-blur-in {
+    0% { opacity: 0; backdrop-filter: blur(0); }
+    50% { opacity: 1; backdrop-filter: blur(20px); }
+    100% { opacity: 0.6; backdrop-filter: blur(8px); }
+}
+
+@keyframes white-flash {
+    0% { opacity: 0; }
+    35% { opacity: 0.95; }
+    100% { opacity: 0; }
+}
+
+@keyframes lens-flare {
+    0% { opacity: 0; transform: translate(-50%, -50%) rotate(-15deg) scaleX(0); }
+    40% { opacity: 1; transform: translate(-50%, -50%) rotate(-15deg) scaleX(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-15deg) scaleX(0.5); }
+}
+
+@keyframes warp-streak-move {
+    0% { transform: translateY(-50%) translateX(-200px); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: translateY(-50%) translateX(400px); opacity: 0; }
+}
+
+@keyframes hud-slide-in {
+    0% { transform: translateX(105%); opacity: 0; filter: blur(8px); }
+    100% { transform: translateX(0); opacity: 1; filter: blur(0); }
+}
+
+@keyframes bar-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+}
+
+@keyframes glitch-bg {
+    0% { background: rgba(127, 0, 0, 0.2); }
+    50% { background: rgba(200, 0, 0, 0.35); }
+    100% { background: rgba(80, 0, 0, 0.25); }
+}
+
+@keyframes crt-flicker {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+@keyframes noise-shift {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-2%, 1%); }
+    50% { transform: translate(1%, -2%); }
+    75% { transform: translate(-1%, 2%); }
+    100% { transform: translate(2%, -1%); }
+}
+
+@keyframes glitch-text {
+    0% { transform: translate(0); clip-path: inset(0 0 90% 0); }
+    33% { transform: translate(-3px, 1px); clip-path: inset(30% 0 40% 0); }
+    66% { transform: translate(3px, -1px); clip-path: inset(60% 0 10% 0); }
+    100% { transform: translate(0); clip-path: inset(0 0 90% 0); }
+}
+
+@keyframes cockpit-shake {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-5px, 3px); }
+    50% { transform: translate(5px, -4px); }
+    75% { transform: translate(-3px, -2px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes hud-glitch {
+    0% { transform: translateX(0); filter: hue-rotate(0deg); }
+    50% { transform: translateX(2px); filter: hue-rotate(20deg); }
+    100% { transform: translateX(-1px); filter: hue-rotate(-10deg); }
+}
+
+/* ── Start screen (ship selection) ── */
+
+.start-screen {
+    min-height: 100vh;
+}
+
+.start-ship-card {
+    min-height: 18rem;
+}
+
+.start-btn {
+    font-size: 1.25rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1024px) {
+    .cockpit {
+        flex-direction: column;
+    }
+
+    .viewport,
+    .hud-panel {
+        width: 100% !important;
+    }
+
+    .viewport {
+        height: 45vh;
+    }
+
+    .hud-panel {
+        height: 55vh;
+    }
+
+    .starship {
+        left: 50%;
+        transform: translateX(-50%);
     }
 }
